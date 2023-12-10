@@ -1,47 +1,40 @@
 
 package kr.easw.lesson07.controller;
 
+
+import jakarta.servlet.http.HttpServletResponse;
+import kr.easw.lesson07.model.ExceptionalResultDto;
+import kr.easw.lesson07.model.UserDataEntity;
+import kr.easw.lesson07.service.UserDataService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.servlet.ModelAndView;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.web.bind.annotation.*;
 
-@Controller
+import java.io.IOException;
+
+@RestController
 @RequiredArgsConstructor
-public class BaseWebController {
-
-    @RequestMapping("/dashboard")
-    public ModelAndView onUserDashboard() {
-        return new ModelAndView("user_dashboard.html");
-    }
-
-    @RequestMapping("/login")
-    public ModelAndView onLogin() {
-        return new ModelAndView("login.html");
-    }
+@RequestMapping("/api/v1/auth")
+public class UserAuthEndpoint {
+    private final UserDataService userDataService;
+    private final BCryptPasswordEncoder encoder;
 
 
-    @RequestMapping("/register")
-    public ModelAndView onRegister() {
-        return new ModelAndView("register.html");
-    }
-
-    @RequestMapping("/admin")
-    public ModelAndView onAdminDashboard() {
-        return new ModelAndView("admin_dashboard.html");
-    }
-
-    @RequestMapping("/management")
-    public ModelAndView onManagementDashboard() {
-        return new ModelAndView("management.html");
-    }
-
-    // 이 메서드의 엔드포인트를 /server-error로 설정합니다.
-    @RequestMapping("/server-error")
-    public ModelAndView onErrorTest() {
-        // 에러 페이지로 리다이렉트합니다.
-        return new ModelAndView("error.html");
+    @PostMapping("/login")
+    public ResponseEntity<Object> login(@RequestBody UserDataEntity entity) {
+        try {
+            return ResponseEntity.ok(userDataService.createTokenWith(entity));
+        } catch (Exception ex) {
+            return ResponseEntity.badRequest().body(new ExceptionalResultDto(ex.getMessage()));
+        }
     }
 
 
+    @PostMapping("/register")
+    public void register(@ModelAttribute UserDataEntity entity , HttpServletResponse response) throws IOException {
+        entity.setPassword(encoder.encode(entity.getPassword()));
+        userDataService.createUser(entity);
+        response.sendRedirect("/");
+    }
 }
